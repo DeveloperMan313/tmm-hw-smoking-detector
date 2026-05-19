@@ -40,6 +40,7 @@ import java.util.LinkedList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.tensorflow.lite.examples.objectdetection.ObjectDetectorHelper
+import org.tensorflow.lite.examples.objectdetection.MediaPipeDetectorHelper
 import org.tensorflow.lite.examples.objectdetection.R
 import org.tensorflow.lite.examples.objectdetection.databinding.FragmentCameraBinding
 import org.tensorflow.lite.task.vision.detector.Detection
@@ -54,6 +55,7 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         get() = _fragmentCameraBinding!!
 
     private lateinit var objectDetectorHelper: ObjectDetectorHelper
+    private var mediaPipeDetectorHelper: MediaPipeDetectorHelper? = null
     private lateinit var bitmapBuffer: Bitmap
     private var preview: Preview? = null
     private var imageAnalyzer: ImageAnalysis? = null
@@ -203,6 +205,8 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         // Needs to be cleared instead of reinitialized because the GPU
         // delegate needs to be initialized on the thread using it when applicable
         objectDetectorHelper.clearObjectDetector()
+        mediaPipeDetectorHelper?.clear()
+        mediaPipeDetectorHelper = null
         fragmentCameraBinding.overlay.clear()
     }
 
@@ -285,8 +289,22 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
 
         val imageRotation = image.imageInfo.rotationDegrees
-        // Pass Bitmap and rotation to the object detector helper for processing and detection
-        objectDetectorHelper.detect(bitmapBuffer, imageRotation)
+        
+        if (objectDetectorHelper.currentModel == ObjectDetectorHelper.MODEL_CIGARETTES) {
+            if (mediaPipeDetectorHelper == null) {
+                mediaPipeDetectorHelper = MediaPipeDetectorHelper(
+                    context = requireContext(),
+                    objectDetectorListener = this,
+                    threshold = objectDetectorHelper.threshold,
+                    maxResults = objectDetectorHelper.maxResults,
+                    currentDelegate = objectDetectorHelper.currentDelegate
+                )
+            }
+            mediaPipeDetectorHelper?.detect(bitmapBuffer, imageRotation)
+        } else {
+            // Pass Bitmap and rotation to the object detector helper for processing and detection
+            objectDetectorHelper.detect(bitmapBuffer, imageRotation)
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

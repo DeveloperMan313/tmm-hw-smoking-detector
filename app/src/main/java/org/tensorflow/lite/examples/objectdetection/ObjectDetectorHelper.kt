@@ -91,6 +91,10 @@ class ObjectDetectorHelper(
                 else -> "mobilenetv1.tflite"
             }
 
+        if (currentModel == MODEL_CIGARETTES) {
+            return
+        }
+
         try {
             objectDetector =
                 ObjectDetector.createFromFileAndOptions(context, modelName, optionsBuilder.build())
@@ -149,5 +153,6 @@ class ObjectDetectorHelper(
         const val MODEL_EFFICIENTDETV0 = 1
         const val MODEL_EFFICIENTDETV1 = 2
         const val MODEL_EFFICIENTDETV2 = 3
+        const val MODEL_CIGARETTES = 4
     }
 }
