@@ -61,6 +61,7 @@ class CameraFragment : Fragment(),
     private var faceLandmarkerHelper: FaceLandmarkerHelper? = null
     private var threshold: Float = 0.5f
     private var maxResults: Int = 3
+    private var triggerDistance: Float = 50f
     private var currentDelegate: Int = MediaPipeDetectorHelper.DELEGATE_CPU
     private lateinit var bitmapBuffer: Bitmap
     private var preview: Preview? = null
@@ -149,6 +150,20 @@ class CameraFragment : Fragment(),
             }
         }
 
+        fragmentCameraBinding.bottomSheetLayout.triggerDistanceMinus.setOnClickListener {
+            if (triggerDistance >= 10) {
+                triggerDistance -= 10f
+                updateControlsUi()
+            }
+        }
+
+        fragmentCameraBinding.bottomSheetLayout.triggerDistancePlus.setOnClickListener {
+            if (triggerDistance <= 500) {
+                triggerDistance += 10f
+                updateControlsUi()
+            }
+        }
+
         fragmentCameraBinding.bottomSheetLayout.spinnerDelegate.setSelection(0, false)
         fragmentCameraBinding.bottomSheetLayout.spinnerDelegate.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
@@ -164,11 +179,13 @@ class CameraFragment : Fragment(),
     private fun updateControlsUi() {
         fragmentCameraBinding.bottomSheetLayout.maxResultsValue.text = maxResults.toString()
         fragmentCameraBinding.bottomSheetLayout.thresholdValue.text = String.format("%.2f", threshold)
+        fragmentCameraBinding.bottomSheetLayout.triggerDistanceValue.text = triggerDistance.toInt().toString()
 
         mediaPipeDetectorHelper?.clear()
         mediaPipeDetectorHelper = null 
         faceLandmarkerHelper?.clear()
         faceLandmarkerHelper = null
+        fragmentCameraBinding.overlay.setTriggerDistance(triggerDistance)
         fragmentCameraBinding.overlay.clear()
     }
 
@@ -258,6 +275,7 @@ class CameraFragment : Fragment(),
         activity?.runOnUiThread {
             fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text = String.format("%d ms", inferenceTime)
             fragmentCameraBinding.overlay.setResults(results ?: LinkedList<Detection>(), imageHeight, imageWidth)
+            updateSmokingStatus()
             fragmentCameraBinding.overlay.invalidate()
         }
     }
@@ -270,7 +288,19 @@ class CameraFragment : Fragment(),
     ) {
         activity?.runOnUiThread {
             fragmentCameraBinding.overlay.setFaceResults(resultBundle, imageHeight, imageWidth)
+            updateSmokingStatus()
             fragmentCameraBinding.overlay.invalidate()
+        }
+    }
+
+    private fun updateSmokingStatus() {
+        val isSmoking = fragmentCameraBinding.overlay.getIsSmoking()
+        if (isSmoking) {
+            fragmentCameraBinding.bottomSheetLayout.smokingStatusText.text = "Smoking"
+            fragmentCameraBinding.bottomSheetLayout.smokingStatusText.setTextColor(android.graphics.Color.RED)
+        } else {
+            fragmentCameraBinding.bottomSheetLayout.smokingStatusText.text = "No smoking"
+            fragmentCameraBinding.bottomSheetLayout.smokingStatusText.setTextColor(android.graphics.Color.BLACK)
         }
     }
 
