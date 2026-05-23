@@ -73738,7 +73738,7 @@
               }
             },
             "tensors_decoding_options": {
-              "num_classes": 2,
+              "num_classes": 3,
               "num_boxes": 12276,
               "num_coords": 4,
               "num_values_per_keypoint": 2,
