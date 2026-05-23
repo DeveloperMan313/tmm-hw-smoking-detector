@@ -40,11 +40,15 @@ import java.util.LinkedList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.tensorflow.lite.examples.objectdetection.MediaPipeDetectorHelper
+import org.tensorflow.lite.examples.objectdetection.FaceLandmarkerHelper
 import org.tensorflow.lite.examples.objectdetection.R
 import org.tensorflow.lite.examples.objectdetection.databinding.FragmentCameraBinding
 import org.tensorflow.lite.task.vision.detector.Detection
+import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 
-class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
+class CameraFragment : Fragment(), 
+    MediaPipeDetectorHelper.DetectorListener,
+    FaceLandmarkerHelper.LandmarkerListener {
 
     private val TAG = "ObjectDetection"
 
@@ -54,6 +58,7 @@ class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
         get() = _fragmentCameraBinding!!
 
     private var mediaPipeDetectorHelper: MediaPipeDetectorHelper? = null
+    private var faceLandmarkerHelper: FaceLandmarkerHelper? = null
     private var threshold: Float = 0.5f
     private var maxResults: Int = 3
     private var currentDelegate: Int = MediaPipeDetectorHelper.DELEGATE_CPU
@@ -99,6 +104,12 @@ class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
             maxResults = maxResults,
             currentDelegate = currentDelegate,
             objectDetectorListener = this)
+
+        faceLandmarkerHelper = FaceLandmarkerHelper(
+            context = requireContext(),
+            currentDelegate = currentDelegate,
+            faceLandmarkerListener = this
+        )
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -156,6 +167,8 @@ class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
 
         mediaPipeDetectorHelper?.clear()
         mediaPipeDetectorHelper = null 
+        faceLandmarkerHelper?.clear()
+        faceLandmarkerHelper = null
         fragmentCameraBinding.overlay.clear()
     }
 
@@ -218,7 +231,17 @@ class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
                 objectDetectorListener = this
             )
         }
+
+        if (faceLandmarkerHelper == null) {
+            faceLandmarkerHelper = FaceLandmarkerHelper(
+                context = requireContext(),
+                currentDelegate = currentDelegate,
+                faceLandmarkerListener = this
+            )
+        }
+
         mediaPipeDetectorHelper?.detect(bitmapBuffer, imageRotation)
+        faceLandmarkerHelper?.detect(bitmapBuffer)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -235,6 +258,18 @@ class CameraFragment : Fragment(), MediaPipeDetectorHelper.DetectorListener {
         activity?.runOnUiThread {
             fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text = String.format("%d ms", inferenceTime)
             fragmentCameraBinding.overlay.setResults(results ?: LinkedList<Detection>(), imageHeight, imageWidth)
+            fragmentCameraBinding.overlay.invalidate()
+        }
+    }
+
+    override fun onResults(
+        resultBundle: FaceLandmarkerResult,
+        inferenceTime: Long,
+        imageHeight: Int,
+        imageWidth: Int
+    ) {
+        activity?.runOnUiThread {
+            fragmentCameraBinding.overlay.setFaceResults(resultBundle, imageHeight, imageWidth)
             fragmentCameraBinding.overlay.invalidate()
         }
     }
