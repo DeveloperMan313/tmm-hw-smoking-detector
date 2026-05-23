@@ -1,3 +1,18 @@
+/*
+ * Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *             http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.tensorflow.lite.examples.objectdetection
 
 import android.content.Context
@@ -18,7 +33,7 @@ class MediaPipeDetectorHelper(
     var maxResults: Int = 3,
     var currentDelegate: Int = 0,
     val context: Context,
-    val objectDetectorListener: ObjectDetectorHelper.DetectorListener?
+    val objectDetectorListener: DetectorListener?
 ) {
 
     private var objectDetector: ObjectDetector? = null
@@ -32,10 +47,10 @@ class MediaPipeDetectorHelper(
             .setModelAssetPath("cigarette-detector.tflite")
 
         when (currentDelegate) {
-            ObjectDetectorHelper.DELEGATE_CPU -> {
+            DELEGATE_CPU -> {
                 baseOptionsBuilder.setDelegate(Delegate.CPU)
             }
-            ObjectDetectorHelper.DELEGATE_GPU -> {
+            DELEGATE_GPU -> {
                 baseOptionsBuilder.setDelegate(Delegate.GPU)
             }
         }
@@ -61,6 +76,7 @@ class MediaPipeDetectorHelper(
         }
     }
 
+    @Synchronized
     fun detect(image: Bitmap, imageRotation: Int) {
         if (objectDetector == null) {
             setupObjectDetector()
@@ -69,7 +85,6 @@ class MediaPipeDetectorHelper(
         var inferenceTime = SystemClock.uptimeMillis()
 
         // MediaPipe handles rotation internally via its ImageProcessor/BitmapImageBuilder
-        // But for RunningMode.IMAGE we just pass the bitmap.
         val mpImage = BitmapImageBuilder(image).build()
 
         val results = objectDetector?.detect(mpImage)
@@ -83,8 +98,6 @@ class MediaPipeDetectorHelper(
         )
     }
 
-    // Convert MediaPipe Detection results to TFLite Task Library Detection objects 
-    // to reuse the existing OverlayView and listener.
     private fun ObjectDetectorResult.toTfliteDetections(
         imageWidth: Int,
         imageHeight: Int
@@ -103,7 +116,6 @@ class MediaPipeDetectorHelper(
                 )
             }
 
-            // magic constants because i don't know what i'm doing
             val mpBox = mpDetection.boundingBox()
             val flippedBox = RectF(
                 (imageWidth.toFloat() * 0.75f - mpBox.bottom) * 0.75f,
@@ -119,8 +131,24 @@ class MediaPipeDetectorHelper(
         return tfliteDetections
     }
 
+    @Synchronized
     fun clear() {
         objectDetector?.close()
         objectDetector = null
+    }
+
+    interface DetectorListener {
+        fun onError(error: String)
+        fun onResults(
+            results: MutableList<Detection>?,
+            inferenceTime: Long,
+            imageHeight: Int,
+            imageWidth: Int
+        )
+    }
+
+    companion object {
+        const val DELEGATE_CPU = 0
+        const val DELEGATE_GPU = 1
     }
 }
