@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tensorflow.lite.examples.objectdetection.fragments
+package com.smokingdetector.fragments
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
@@ -39,10 +39,10 @@ import androidx.navigation.Navigation
 import java.util.LinkedList
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import org.tensorflow.lite.examples.objectdetection.MediaPipeDetectorHelper
-import org.tensorflow.lite.examples.objectdetection.FaceLandmarkerHelper
-import org.tensorflow.lite.examples.objectdetection.R
-import org.tensorflow.lite.examples.objectdetection.databinding.FragmentCameraBinding
+import com.smokingdetector.MediaPipeDetectorHelper
+import com.smokingdetector.FaceLandmarkerHelper
+import com.smokingdetector.R
+import com.smokingdetector.databinding.FragmentCameraBinding
 import org.tensorflow.lite.task.vision.detector.Detection
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 
@@ -293,6 +293,12 @@ class CameraFragment : Fragment(),
         }
     }
 
+    override fun onError(error: String) {
+        activity?.runOnUiThread {
+            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun updateSmokingStatus() {
         val isSmoking = fragmentCameraBinding.overlay.getIsSmoking()
         if (isSmoking) {
@@ -301,12 +307,6 @@ class CameraFragment : Fragment(),
         } else {
             fragmentCameraBinding.bottomSheetLayout.smokingStatusText.text = "No smoking"
             fragmentCameraBinding.bottomSheetLayout.smokingStatusText.setTextColor(android.graphics.Color.BLACK)
-        }
-    }
-
-    override fun onError(error: String) {
-        activity?.runOnUiThread {
-            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
         }
     }
 }
